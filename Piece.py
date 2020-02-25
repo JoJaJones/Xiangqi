@@ -64,7 +64,7 @@ class Piece:
 
         return False
 
-    def can_move(self, end_pos: tuple, is_pieces_turn: bool = True):
+    def can_move(self, end_pos: tuple, pieces_turn: bool = True):
         # valid pos
         if not self.is_valid_pos(end_pos):
             return False
@@ -74,12 +74,11 @@ class Piece:
             return False
 
         # causes_check
-        if self._ref_piece.is_in_check():  # TODO General move error
-            return self.ends_check(end_pos)
-
-        if is_pieces_turn:  # TODO logic for moves to end check
-            if self.causes_check(end_pos):
-                return False
+        if pieces_turn:
+            if self._ref_piece.is_in_check():  # TODO General move error
+                return self.ends_check(end_pos)
+            else:
+                return not self.causes_check(end_pos)
 
         return True
 
@@ -88,6 +87,13 @@ class Piece:
             threats = self._ref_piece.get_threats()
             blocking_pos = set()
             for i in range(len(threats)):
+                if threats[i].get_type() == CANNON:
+                    scr_dir = self._board_ref.get_direction_to_pos(threats[i].get_pos(), self._ref_piece.get_pos())
+                    screen = threats[i].get_screen(scr_dir)
+                    if screen == self:
+                        cannon_block = self.find_blocking_pos(threats[i].get_pos())
+                        return end_pos not in cannon_block
+
                 if i == 0:
                     blocking_pos = set(self.find_blocking_pos(threats[i].get_pos()))
                 else:

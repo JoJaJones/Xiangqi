@@ -113,6 +113,9 @@ class Player:
             return False
 
         threats = self._general.get_threats()
+        if len(threats) == 0:
+            return False
+
         threat_types = set([threat.get_type() for threat in threats])
         if len(threats) >= 3:
             return True
@@ -168,9 +171,10 @@ class Player:
                     else:
                         scr_dir = LEFT
 
-                    blocking_pos = []
+                    blocking_pos = set()
+                    block_pos_loaded = False
                     for piece in orth_pieces[direction]:
-                        if piece.get_color() != self._color and piece.can_move(self._general.get_pos(), False):
+                        if piece.get_color() != self._color and piece.can_move(self._general.get_pos()):
                             if piece.get_type() == CANNON:
                                 screen = piece.get_screen(scr_dir)
                                 if screen.get_color() != self._color and screen.get_type() == CANNON:
@@ -178,8 +182,11 @@ class Player:
                                 elif screen.get_color() == self._color and not screen.has_no_moves():
                                     return False
 
-                            blocking_pos = self.find_blocking_spots(piece.get_pos(), direction)
-                            break
+                            if not block_pos_loaded:
+                                blocking_pos = set(self.find_blocking_spots(piece.get_pos(), direction))
+                                block_pos_loaded = True
+                            else:
+                                blocking_pos.intersection(set(self.find_blocking_spots(piece.get_pos(), direction)))
 
                     if len(blocking_pos) == 0:
                         return True

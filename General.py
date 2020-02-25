@@ -135,7 +135,7 @@ class General(Piece):
 
         for direction in DIR_DICT:
             if self.find_threats_in_dir(direction):
-                threats += [threat for threat in self._pieces_in_dir[direction] if threat.get_color() != self.get_color() and threat.can_move(self.get_pos())]
+                threats += [threat for threat in self._pieces_in_dir[direction] if threat.get_color() != self.get_color() and threat.can_move(self.get_pos(), False)]
 
         return threats
 
