@@ -88,9 +88,6 @@ class Piece:
             threats = self._ref_piece.get_threats()
             blocking_pos = set()
             for i in range(len(threats)):
-                if threats[i].get_type() == CANNON:
-                    scr_dir = self._board_ref.get_direction_to_pos(threats[i].get_pos(), self._ref_piece.get_pos())
-                    if threats[i].get_screen(scr_dir) == self
                 if i == 0:
                     blocking_pos = set(self.find_blocking_pos(threats[i].get_pos()))
                 else:
