@@ -18,6 +18,8 @@ class Player:
             base_row = 10
             shift_multiplier = -1
 
+        self._board = board
+
         self._color = color
 
         self._pieces = {}
@@ -42,14 +44,17 @@ class Player:
         for ltr in "acegi":
             self._pieces[f"{ltr}{row}"] = Soldier(board, color, f"{ltr}{row}", self._general)
 
+    def get_general_pos(self):
+        return self._general.get_pos()
+
+    def is_in_check(self, pos=None):
+        return self._general.is_in_check(pos)
+
     def update(self):
         for pos in self._pieces:
             if self._pieces[pos].get_pos() is None:
                 del self._pieces[pos]
                 break
-
-    def is_in_check(self, pos=None):
-        return self._general.is_in_check(pos)
 
     def make_move(self, start_pos: str, end_pos: str):
         if start_pos not in self._pieces:
@@ -62,15 +67,14 @@ class Player:
         else:
             return False
 
-    def get_general_pos(self):
-        return self._general.get_pos()
-
     def general_can_move(self):
         g_row, g_col = self.get_general_pos()
 
         for direction in DIR_DICT:
                 r_shift, c_shift = DIR_DICT[direction]
-                if not self.is_in_check((g_row + r_shift, g_col + c_shift)):
+                pos = (g_row + r_shift, g_col + c_shift)
+
+                if not self.is_in_check(pos):
                     return True
 
         return False
@@ -145,7 +149,7 @@ class Player:
                     horse = threats[0]
 
                 c_row, c_col = cannon.get_pos()
-                g_row, g_col = self._general.get_pos()
+                g_row, g_col = self.get_general_pos()
 
                 if c_row > g_row:
                     direction = UP
@@ -174,7 +178,7 @@ class Player:
                     blocking_pos = set()
                     block_pos_loaded = False
                     for piece in orth_pieces[direction]:
-                        if piece.get_color() != self._color and piece.can_move(self._general.get_pos()):
+                        if piece.get_color() != self._color and piece.can_move(self.get_general_pos()):
                             if piece.get_type() == CANNON:
                                 screen = piece.get_screen(scr_dir)
                                 if screen.get_color() != self._color and screen.get_type() == CANNON:
@@ -198,7 +202,6 @@ class Player:
 
                         return True
 
-
     def find_blocking_spots(self, pos: tuple, direction: str):
         if direction == UP:
             search_dir = DOWN
@@ -217,190 +220,10 @@ class Player:
 
 
         blocking_pos = []
-        while (row, col) != self._general.get_pos():
-            if self._general.get_piece_at_pos((row, col)) is None:
+        while (row, col) != self.get_general_pos():
+            if self._board.get_pos((row, col)) is None:
                 blocking_pos.append((row, col))
             row += r_shift
             col += c_shift
-
-        return blocking_pos
-
-    # def is_mate(self):
-    #     row, col = self._general.get_pos()
-    #
-    #     if not self.is_in_check():
-    #         return False
-    #
-    #     for direction in DIR_DICT:
-    #         r_shift, c_shift = DIR_DICT[direction]
-    #         if not self.is_in_check((row + r_shift, col + c_shift)):
-    #             return False
-    #
-    #     pieces = self._general.get_threats()
-    #     if pieces is not None:
-    #         direction = pieces[1]
-    #         pieces = pieces[0]
-    #         if direction == HORSE:
-    #             threat = pieces[0]
-    #
-    #         threat = None
-    #         can_take = True
-    #         for i in range(len(pieces)):
-    #             if pieces[i].get_color() != self._color:
-    #                 if threat is None and pieces[i].can_move(pieces[i].get_pos, self._general.get_pos()):
-    #                     threat = pieces[i]
-    #                     if i+1 < len(pieces) and pieces[i+1].get_type() == CANNON:
-    #                         if pieces[i+1].get_color() != self._color:
-    #                             can_take = False
-    #
-    #                     if threat.get_type() == CANNON and not can_take:
-    #                         return True
-    #
-    #                     break
-    #
-    #         blocking_spots = self.get_target_pos(threat, can_take)
-    #
-    #         while len(blocking_spots) > 0:
-    #             cur_target = blocking_spots[0]
-    #             blocking_spots = blocking_spots[1:]
-    #             for piece in self._pieces:
-    #                 if piece != GENERAL:
-    #                     if self._pieces[piece].can_move(self._pieces[piece].get_pos(), cur_target):
-    #                         if not self.piece_is_blocking_check(self._pieces[piece]):
-    #                             return False
-    #
-    #         return True
-    #
-    #     return False
-
-    # def is_mate(self):  # TODO Cannon screen logic
-    #     threat_list = []
-    #     cannon_screen = None
-    #
-    #     row, col = self._general.get_pos()
-    #
-    #     if not self.is_in_check():
-    #         return False
-    #
-    #     for direction in DIR_DICT:
-    #         r_shift, c_shift = DIR_DICT[direction]
-    #         if not self.is_in_check((row + r_shift, col + c_shift)):
-    #             return False
-    #
-    #     threats = self._general.get_threats()
-    #     num_moves = 0
-    #     if threats is not None:
-    #         blocking_spots = []
-    #         for pieces in threats:
-    #             direction = pieces[1]
-    #             pieces = pieces[0]
-    #             threat = None
-    #             if direction == HORSE:
-    #                 threat = pieces[0]
-    #                 threat_list.append(HORSE)
-    #
-    #             can_take = True
-    #             # for i in range(len(pieces)):
-    #             #     if pieces[i].get_color() != self._color:
-    #             #         if threat is None and pieces[i].can_move(pieces[i].get_pos, self._general.get_pos()):
-    #             #             threat = pieces[i]
-    #             #             if i + 1 < len(pieces) and pieces[i + 1].get_type() == CANNON:
-    #             #                 if pieces[i + 1].get_color() != self._color:
-    #             #                     can_take = False
-    #             #
-    #             #             if threat.get_type() == CANNON and not can_take:
-    #             #                 return True
-    #             #
-    #             #             break
-    #
-    #             for i in range(len(pieces)):
-    #                 if pieces[i].get_color() != self._color:
-    #                     if pieces[i].can_move(pieces[i].get_pos, self._general.get_pos()):
-    #                         threat_type = pieces[i].get_type()
-    #                         threat_list.append(threat_type)
-    #                         if pieces[i + 1].get_color() != self._color and pieces[i + 1].get_type() == CANNON:
-    #                             can_take = False
-    #
-    #                         if threat_type == CANNON:
-    #                             cannon_screen = pieces[i-1]
-    #
-    #
-    #             blocking_spots.append(set(self.get_target_pos(threat, can_take)))
-    #
-    #         while len(blocking_spots) > 1:
-    #             blocking_spots[0] = blocking_spots[0].intersection(blocking_spots[-1])
-    #             blocking_spots = blocking_spots[:-1]
-    #
-    #         blocking_spots = list(blocking_spots[0])
-    #
-    #         while len(blocking_spots) > 0:
-    #             cur_target = blocking_spots[0]
-    #             blocking_spots = blocking_spots[1:]
-    #             for piece in self._pieces:
-    #                 if piece != GENERAL:
-    #                     if self._pieces[piece].can_move(self._pieces[piece].get_pos(), cur_target):
-    #                         if not self.piece_is_blocking_check(self._pieces[piece]):
-    #                             num_moves += 1
-    #
-    #         return num_moves != 1
-    #
-    #     return False
-
-    def piece_is_blocking_check(self, piece):
-        orth_pieces = self._general.get_orth_pieces()
-        for direction in orth_pieces:
-            if piece in orth_pieces[direction]:
-                if orth_pieces[direction].index(piece) == 0:
-                    if len(orth_pieces[direction]) > 1:
-                        threat = orth_pieces[direction][1]
-                        if threat.get_type() == CHARIOT and threat.get_color() != self._color:
-                            return True
-
-                        if len(orth_pieces[direction]) > 2:
-                            threat = orth_pieces[direction][2]
-                            if threat.get_type() == CANNON and threat.get_color() != self._color:
-                                return True
-
-        return False
-
-    def get_target_pos(self, piece, can_take=True):
-        blocking_pos = []
-        if can_take:
-            blocking_pos.append(piece.get_pos())
-
-        piece_type = piece.get_type()
-        row, col = self._general.get_pos()
-
-        if piece_type == HORSE:
-            h_row, h_col = piece.get_pos()
-
-            if abs(h_row - row) == 2:
-                b_row = h_row + row
-                b_row //= 2
-                b_col = h_col
-            else:
-                b_col = h_col + col
-                b_col //= 2
-                b_row = h_row
-
-            blocking_pos.append((b_row, b_col))
-        elif piece_type != SOLDIER:
-            p_row, p_col = piece.get_pos()
-            if p_row == row:
-                if p_col < col:
-                    shift = -1
-                else:
-                    shift = 1
-                for i in range(col, p_col, shift):
-                    if i != col:
-                        blocking_pos.append((row, i))
-            else:
-                if p_row < row:
-                    shift = -1
-                else:
-                    shift = 1
-                for i in range(row, p_row, shift):
-                    if i != row:
-                        blocking_pos.append((i, col))
 
         return blocking_pos

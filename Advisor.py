@@ -14,7 +14,7 @@ class Advisor(Piece):
             if abs(cur_col - dest_pos[1]) != 1:
                 return False
 
-            if self._board_ref.leaves_palace(self._pos, dest_pos):
+            if self._board.leaves_palace(self._pos, dest_pos):
                 return False
 
             return True

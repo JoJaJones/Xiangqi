@@ -34,7 +34,7 @@ class Soldier(Piece):
     def move_piece(self, dest):
         cur_pos = self._pos
         if super().move_piece(dest):
-            if self._board_ref.crosses_river(cur_pos, self._pos):
+            if self._board.crosses_river(cur_pos, self._pos):
                 self._crossed_river = True
 
             return True

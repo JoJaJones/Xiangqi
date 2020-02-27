@@ -2,8 +2,6 @@ from Piece import Piece
 from constants import *
 
 
-# TODO update check logic so can check for checkmate
-
 class General(Piece):
     def __init__(self, board, color):
         if color == RED:
@@ -38,20 +36,20 @@ class General(Piece):
         if piece.get_color() == self.get_color():
             return False
 
-        if abs(horse[0]) > abs(horse[1]):
-            row_shift = 1
-            if horse[0] < 0:
-                row_shift *= -1
+        # if abs(horse[0]) > abs(horse[1]):
+        #     row_shift = 1
+        #     if horse[0] < 0:
+        #         row_shift *= -1
+        #
+        #     col_shift = horse[1]
+        # else:
+        #     row_shift = horse[0]
+        #
+        #     col_shift = 1
+        #     if horse[1] < 0:
+        #         col_shift *= -1
 
-            col_shift = horse[1]
-        else:
-            row_shift = horse[0]
-
-            col_shift = 1
-            if horse[1] < 0:
-                col_shift *= -1
-
-        blocking_pos = row_shift, col_shift
+        blocking_pos = piece.get_blocking_pos(self._pos)
         blocking_piece = self.get_relative_piece(blocking_pos, pos)
 
         if blocking_piece is not None:
@@ -106,7 +104,7 @@ class General(Piece):
         start_row, start_col = self._pos
         end_row, end_col = dest_pos
         if super().is_valid_pos(dest_pos):
-            if self._board_ref.leaves_palace(self._pos, dest_pos):
+            if self._board.leaves_palace(self._pos, dest_pos):
                 return False
 
             if start_row != end_row and start_col != end_col:
@@ -135,7 +133,8 @@ class General(Piece):
 
         for direction in DIR_DICT:
             if self.find_threats_in_dir(direction):
-                threats += [threat for threat in self._pieces_in_dir[direction] if threat.get_color() != self.get_color() and threat.can_move(self.get_pos(), False)]
+                threats += [threat for threat in self._pieces_in_dir[direction]
+                            if threat.get_color() != self.get_color() and threat.can_move(self.get_pos(), False)]
 
         return threats
 

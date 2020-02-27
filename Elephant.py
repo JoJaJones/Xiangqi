@@ -14,7 +14,7 @@ class Elephant(Piece):
             if abs(cur_row - dest_pos[0]) != 2:
                 return False
 
-            if self._board_ref.crosses_river(self._pos, dest_pos):
+            if self._board.crosses_river(self._pos, dest_pos):
                 return False
 
             return True

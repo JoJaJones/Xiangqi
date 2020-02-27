@@ -20,12 +20,48 @@ class Board:
         row, col = pos
         return self._positions[row][col]
 
+    def get_positions(self):
+        return self._positions
+
+    def get_direction_to_pos(self, source_pos: tuple, dest_pos: tuple):
+        s_row, s_col = source_pos
+
+        d_row, d_col = dest_pos
+
+        if s_row == d_row:
+            if s_col < d_col:
+                return RIGHT
+            else:
+                return LEFT
+        elif s_col == d_col:
+            if s_row > d_row:
+                return UP
+            else:
+                return DOWN
+        else:
+            return None
+
+    def get_relative_piece(self, source_pos: tuple, pos_shift: tuple):
+        s_row, s_col = source_pos
+        r_shift, c_shift = pos_shift
+
+        if self.is_on_board(s_row + r_shift, s_col + c_shift):
+            return self._positions[s_row + r_shift][s_col + c_shift]
+        else:
+            return None
+
     def set_pos(self, pos: tuple, piece=None):
         row, col = pos
         self._positions[row][col] = piece
 
-    def get_positions(self):
-        return self._positions
+    def is_on_board(self, row: int, col: int):
+        if col > 8 or col < 0:
+            return False
+
+        if row > 9 or row < 0:
+            return False
+
+        return True
 
     def convert_to_row_col(self, pos: str):
         col = self._ltr_dict[pos[0]]
@@ -38,7 +74,7 @@ class Board:
 
         return self._positions[col] + str(row + 1)
 
-    def is_in_palace(self, pos, color=None):
+    def is_in_palace(self, pos: tuple, color: str = None):
         if type(pos) == str:
             row, col = self.convert_to_row_col(pos)
         else:
@@ -59,19 +95,13 @@ class Board:
         else:
             return in_black
 
-    def leaves_palace(self, start_pos, end_pos):
+    def leaves_palace(self, start_pos: tuple, end_pos: tuple):
         if self.is_in_palace(start_pos) and not self.is_in_palace(end_pos):
             return True
         else:
             return False
 
-    def enters_palace(self, start_pos, end_pos):
-        if not self.is_in_palace(start_pos) and self.is_in_palace(end_pos):
-            return True
-        else:
-            return False
-
-    def crosses_river(self, start_pos, end_pos):
+    def crosses_river(self, start_pos: tuple, end_pos: tuple):
         if type(start_pos) == str:
             start_pos = self.convert_to_row_col(start_pos)
 
@@ -89,20 +119,34 @@ class Board:
         else:
             return False
 
-    def get_direction_to_pos(self, source_pos: tuple, dest_pos: tuple):
-        s_row, s_col = source_pos
-
-        d_row, d_col = dest_pos
-
-        if s_row == d_row:
-            if s_col < d_col:
-                return RIGHT
+    def print_board(self):
+        print_dict = {SOLDIER: "S", CHARIOT: "T", ADVISOR: "A", CANNON: "C", ELEPHANT: "E", GENERAL: "G", HORSE: "H",
+                      None: " "}
+        color_dict = {RED: "\033[91m", BLACK: "\033[35m", None: "\033[97m"}
+        board_table = self._positions
+        for row in range(-1, len(board_table)):
+            if row == -1:
+                print("    ", end="")
+                for col in range(len(board_table[0])):
+                    print(" {} ".format("abcdefghi"[col]), end="")
             else:
-                return LEFT
-        elif s_col == d_col:
-            if s_row > d_row:
-                return UP
-            else:
-                return DOWN
-        else:
-            return None
+                print(f" {row + 1:2d} ", end="")
+                for col in range(len(board_table[row])):
+                    piece = board_table[row][col]
+                    if piece is None:
+                        color = color_dict[None]
+                        p_type = print_dict[None]
+                    else:
+                        color = color_dict[piece.get_color()]
+                        p_type = print_dict[piece.get_type()]
+                    if (0 <= row <= 2 or 7 <= row <= 9) and 3 <= col <= 5:
+                        print(f"<{color}{p_type}\033[00m>", end="")
+                    elif row == 4:
+                        print(f"'{color}{p_type}\033[00m'", end="")
+                    elif row == 5:
+                        print(f",{color}{p_type}\033[00m,", end="")
+                    else:
+                        print(f"[{color}{p_type}\033[00m]", end="")
+
+            print("")
+        # input()

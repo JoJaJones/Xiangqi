@@ -4,12 +4,12 @@ from constants import *
 
 class Piece:
     def __init__(self, board: Board, piece_type: str, color: str, pos: str, ref_piece, max_move_distance: int = 1):
-        self._board_ref = board
+        self._board = board
         self._type = piece_type
         self._color = color
-        self._pos = self._board_ref.convert_to_row_col(pos)
-        self._board_ref.set_pos(self._pos, self)
-        self._ref_piece = ref_piece
+        self._pos = self._board.convert_to_row_col(pos)
+        self._board.set_pos(self._pos, self)
+        self._general = ref_piece
         self._move_distance = max_move_distance
 
     def get_color(self):
@@ -18,47 +18,104 @@ class Piece:
     def get_type(self):
         return self._type
 
-    def set_pos(self, pos: tuple = None):
-        if pos is None:
-            self._board_ref.set_pos(self._pos)
-            self._pos = None
-        else:
-            self._board_ref.set_pos(pos, self)
-            self._pos = pos
-
     def get_pos(self):
         return self._pos
 
     def get_piece_at_pos(self, pos: tuple):
-        return self._board_ref.get_pos(pos)
+        return self._board.get_pos(pos)
 
     def get_relative_piece(self, pos_shift: tuple, pos: tuple = None):
         if pos is None:
-            rel_row, rel_col = self._pos
+            pos = self._pos
+
+        return self._board.get_relative_piece(pos, pos_shift)
+
+    def set_pos(self, pos: tuple = None):
+        if pos is None:  # clear piece from board
+            self._board.set_pos(self._pos)
+            self._pos = None
+        else:  # update board and pos
+            self._board.set_pos(pos, self)
+            self._pos = pos
+
+    def is_valid_pos(self, dest_pos: tuple):
+        start_row, start_col = self._pos
+        end_row, end_col = dest_pos
+
+        if not self.is_on_board(end_row, end_col):
+            return False
+
+        if start_row == end_row and abs(end_col - start_col) > self._move_distance:
+            return False
+
+        if start_col == end_col and abs(end_row - start_row) > self._move_distance:
+            return False
+
+        dest_piece = self._board.get_pos(dest_pos)
+        if dest_piece is not None and dest_piece.get_color() == self._color:
+            return False
+
+        return True
+
+    def is_on_board(self, row: int, col: int):
+        return self._board.is_on_board(row, col)
+
+    def is_capture(self, pos: tuple):
+        piece = self.get_piece_at_pos(pos)
+        if piece is not None and piece.get_color() != self._color:
+            return True
         else:
-            rel_row, rel_col = pos
-        rel_row += pos_shift[0]
-        rel_col += pos_shift[1]
+            return False
 
-        if not self.is_on_board(rel_row, rel_col):
-            return None
+    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):  # TODO
+        row, col = self._pos
+        end_row, end_col = dest_pos
 
-        return self._board_ref.get_pos((rel_row, rel_col))
+        num_between = 0
+        direction = self._board.get_direction_to_pos(self._pos, dest_pos)
+
+        if direction is not None:
+            r_shift, c_shift = DIR_DICT[direction]
+            row += r_shift
+            col += c_shift
+            while self.is_on_board(row, col) and (col != end_col or row != end_row):
+                if self.get_piece_at_pos((row, col)) is not None:
+                    if num_between == num_allowed_between:
+                        return False
+                    else:
+                        num_between += 1
+
+                row += r_shift
+                col += c_shift
+
+        piece = self._board.get_pos((end_row, end_col))
+        if piece is not None:
+            return self.is_capture(dest_pos)
+
+        return num_between == num_allowed_between
+
+    def has_no_moves(self):
+        for direction in DIR_DICT:
+            row, col = self.get_pos()
+            distance = 1
+            while self.is_on_board(row, col) and distance <= self._move_distance:
+                row += DIR_DICT[direction][0]
+                col += DIR_DICT[direction][1]
+                distance += 1
+                if self.can_move((row, col)):
+                    return False
+
+        return True
 
     def move_piece(self, dest: str):
-        dest_pos = self._board_ref.convert_to_row_col(dest)
+        dest_pos = self._board.convert_to_row_col(dest)
         if self.can_move(dest_pos):
             if self.is_capture(dest_pos):
-                self._board_ref.get_pos(dest_pos).set_pos()
+                self._board.get_pos(dest_pos).set_pos()
 
-            cur_pos = self._pos
             self.set_pos()
             self._pos = dest_pos
             self.set_pos(self._pos)
-            # if self._ref_piece.is_in_check(): # TODO figure out way to check for a move ending check since this causes stalemate to fail
-            #     self.set_pos()
-            #     self.set_pos(cur_pos)
-            #     return False
 
             return True
 
@@ -75,7 +132,7 @@ class Piece:
 
         # causes_check
         if pieces_turn:
-            if self._ref_piece.is_in_check():  # TODO General move error
+            if self._general.is_in_check():  # TODO General move error
                 return self.ends_check(end_pos)
             else:
                 return not self.causes_check(end_pos)
@@ -84,20 +141,26 @@ class Piece:
 
     def ends_check(self, end_pos: tuple):  # TODO screen logic
         if not self.causes_check(end_pos):
-            threats = self._ref_piece.get_threats()
+            threats = self._general.get_threats()
             blocking_pos = set()
             for i in range(len(threats)):
                 if threats[i].get_type() == CANNON:
-                    scr_dir = self._board_ref.get_direction_to_pos(threats[i].get_pos(), self._ref_piece.get_pos())
+                    scr_dir = self._board.get_direction_to_pos(threats[i].get_pos(), self._general.get_pos())
                     screen = threats[i].get_screen(scr_dir)
                     if screen == self:
                         cannon_block = self.find_blocking_pos(threats[i].get_pos())
                         return end_pos not in cannon_block
 
                 if i == 0:
-                    blocking_pos = set(self.find_blocking_pos(threats[i].get_pos()))
+                    if threats[i].get_type() != HORSE:
+                        blocking_pos = set(self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()])
+                    else:
+                        blocking_pos = {threats[i].get_blocking_pos(self._general.get_pos()), threats[i].get_pos()}
                 else:
-                    blocking_pos.intersection(set(self.find_blocking_pos(threats[i].get_pos())))
+                    if threats[i].get_type() != HORSE:
+                        blocking_pos.intersection(set(self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()]))
+                    else:
+                        blocking_pos.intersection({threats[i].get_blocking_pos(self._general.get_pos()), threats[i].get_pos()})
 
             if end_pos in blocking_pos:
                 return True
@@ -106,7 +169,7 @@ class Piece:
 
     def find_blocking_pos(self, pos: tuple, direction: str = None):  # TODO
         if direction is None:
-            search_dir = self._board_ref.get_direction_to_pos(pos, self._ref_piece.get_pos())
+            search_dir = self._board.get_direction_to_pos(pos, self._general.get_pos())
 
         r_shift, c_shift = DIR_DICT[search_dir]
         row, col = pos
@@ -115,8 +178,8 @@ class Piece:
         col += c_shift
 
         blocking_pos = []
-        while (row, col) != self._ref_piece.get_pos():
-            piece = self._ref_piece.get_piece_at_pos((row, col))
+        while (row, col) != self._general.get_pos():
+            piece = self._general.get_piece_at_pos((row, col))
             if piece is None:
                 blocking_pos.append((row, col))
 
@@ -126,7 +189,7 @@ class Piece:
         return blocking_pos
 
     def causes_check(self, end_pos: tuple):  # TODO
-        temp = self._ref_piece.get_rel_horses()
+        temp = self._general.get_rel_horses()
 
         horses = [horse for horse in temp if horse is not None and
                   horse.get_type() == HORSE and horse.get_color() != self._color]
@@ -136,7 +199,7 @@ class Piece:
                 return True
 
         row, col = self._pos
-        g_row, g_col = self._ref_piece.get_pos()
+        g_row, g_col = self._general.get_pos()
         e_row, e_col = end_pos
 
         if row == g_row or col == g_col:
@@ -158,7 +221,7 @@ class Piece:
         return False
 
     def leaving_dir_causes_check(self):  # TODO
-        orth_pieces = self._ref_piece.get_orth_pieces()
+        orth_pieces = self._general.get_orth_pieces()
         for direction in DIR_DICT:
             if self in orth_pieces[direction]:
                 orth_pieces = orth_pieces[direction]
@@ -180,7 +243,7 @@ class Piece:
         return False
 
     def capture_causes_check(self, end_pos: tuple):  # TODO
-        orth_pieces = self._ref_piece.get_orth_pieces()
+        orth_pieces = self._general.get_orth_pieces()
         target_piece = self.get_piece_at_pos(end_pos)
         for direction in DIR_DICT:
             if target_piece in orth_pieces[direction]:
@@ -220,7 +283,7 @@ class Piece:
 
     def entering_dir_causes_check(self, end_pos: tuple):  # TODO
         s_row, s_col = self._pos
-        g_row, g_col = self._ref_piece.get_pos()
+        g_row, g_col = self._general.get_pos()
         e_row, e_col = end_pos
 
         if self.is_capture(end_pos) and self.capture_causes_check(end_pos):
@@ -234,7 +297,7 @@ class Piece:
                 end_dir = direction
                 break
 
-        pieces = self._ref_piece.get_orth_pieces()[end_dir]
+        pieces = self._general.get_orth_pieces()[end_dir]
 
         if pieces[0].get_type() != CANNON:
             return False
@@ -246,108 +309,3 @@ class Piece:
             return False
 
         return True
-
-    def is_valid_pos(self, dest_pos: tuple):
-        start_row, start_col = self._pos
-        end_row, end_col = dest_pos
-
-        if not self.is_on_board(end_row, end_col):
-            return False
-
-        if start_row == end_row and abs(end_col - start_col) > self._move_distance:
-            return False
-
-        if start_col == end_col and abs(end_row - start_row) > self._move_distance:
-            return False
-
-        dest_piece = self._board_ref.get_pos(dest_pos)
-        if dest_piece is not None and dest_piece.get_color() == self._color:
-            return False
-
-        return True
-
-    def is_on_board(self, row: int, col: int):
-        if col > 8 or col < 0:
-            return False
-
-        if row > 9 or row < 0:
-            return False
-
-        return True
-
-    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
-        start_row, start_col = self._pos
-        end_row, end_col = dest_pos
-
-        num_between = 0
-
-        if start_row == end_row:
-            if start_col > end_col:
-                shift = -1
-            else:
-                shift = 1
-
-            for i in range(start_col, end_col, shift):
-
-                if self._board_ref.get_pos((start_row, i)) is not None and i != start_col:
-                    if num_between == num_allowed_between:
-                        return False
-                    else:
-                        num_allowed_between += 1
-        elif start_col == end_col:
-            if start_row > end_row:
-                shift = -1
-            else:
-                shift = 1
-
-            for i in range(start_row, end_row, shift):
-                if self._board_ref.get_pos((i, start_col)) is not None and i != start_row:
-                    if num_between == num_allowed_between:
-                        return False
-                    else:
-                        num_allowed_between += 1
-
-        piece = self._board_ref.get_pos((end_row, end_col))
-        if piece is not None:
-            return self.is_capture(dest_pos)
-
-        return num_between == num_allowed_between
-
-    def is_capture(self, pos: tuple):
-        piece = self.get_piece_at_pos(pos)
-        if piece is not None and piece.get_color() != self._color:
-            return True
-        else:
-            return False
-
-    def has_no_moves(self):
-        for direction in DIR_DICT:
-            row, col = self.get_pos()
-            while self.is_on_board(row, col):
-                row += DIR_DICT[direction][0]
-                col += DIR_DICT[direction][1]
-                if self.can_move((row, col)):
-                    return False
-
-        return True
-
-    def get_direction_to_rel_piece(self, pos: tuple, ref_pos: tuple = None):
-        if ref_pos is None:
-            r_row, r_col = self._pos
-        else:
-            r_row, r_col = ref_pos
-
-        o_row, o_col = pos
-
-        if r_row == o_row:
-            if r_col < o_col:
-                return RIGHT
-            else:
-                return LEFT
-        elif o_col == r_col:
-            if r_row > o_row:
-                return UP
-            else:
-                return DOWN
-        else:
-            return None
