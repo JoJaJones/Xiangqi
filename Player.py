@@ -95,7 +95,7 @@ class Player:
         rel_horses = self._general.get_rel_horses()
         for piece in rel_horses:
             if piece is not None and piece.get_type() == HORSE and piece.get_color() != self._color:
-                block_pos = piece.get_blocking_pos(self.get_general_pos())
+                block_pos = piece.find_blocking_pos(self.get_general_pos())
                 if block_pos in pieces_to_check:
                     del pieces_to_check[block_pos]
 
@@ -109,7 +109,6 @@ class Player:
 
         return False
 
-    # TODO refactor
     def is_mate(self):
         if not self.is_in_check():
             return False
@@ -121,110 +120,24 @@ class Player:
         if len(threats) == 0:
             return False
 
-        threat_types = set([threat.get_type() for threat in threats])
         if len(threats) >= 3:
             return True
 
-        if len(threats) == 1:
-            for piece in self._pieces.values():
-                if piece.can_move(threats[0].get_pos()):
+        blocking_pos = self._general.get_blocking_pos()
+        screen = None
+        if type(blocking_pos) == tuple:
+            blocking_pos, screen = blocking_pos
+
+        if len(blocking_pos) == 0:
+            return True
+
+        for piece in self._pieces.values():
+            if piece == screen:
+                if not piece.has_no_moves():
                     return False
+            else:
+                for pos in blocking_pos:
+                    if piece.can_move(pos):
+                        return False
 
-        orth_pieces = self._general.get_orth_pieces()
-        if HORSE in threat_types and len(threat_types) == 1:
-            blocking_pos = threats[0].get_blocking_pos()
-            if len(threats) == 2 and threats[1].get_blocking_pos() != blocking_pos:
-                return True
-
-            for piece in self._pieces.values():
-                if piece.can_move(blocking_pos):
-                    return False
-
-        elif HORSE in threat_types and len(threat_types) > 1:
-            if CANNON in threat_types:
-                if threats[0].get_type() == CANNON:
-                    cannon = threats[0]
-                    horse = threats[1]
-                else:
-                    cannon = threats[1]
-                    horse = threats[0]
-
-                c_row, c_col = cannon.get_pos()
-                g_row, g_col = self.get_general_pos()
-
-                if c_row > g_row:
-                    direction = UP
-                elif c_row < g_row:
-                    direction = DOWN
-                elif c_col > g_col:
-                    direction = LEFT
-                else:
-                    direction = RIGHT
-
-                screen = cannon.get_screen(direction)
-                if screen.get_color() == self._color:
-                    return screen.can_move(horse.get_pos()) or screen.can_move(horse.get_blocking_pos())
-        else:
-            for direction in DIR_DICT:
-                if self._general.find_threats_in_dir(direction):
-                    if direction == UP:
-                        scr_dir = DOWN
-                    elif direction == DOWN:
-                        scr_dir = UP
-                    elif direction == LEFT:
-                        scr_dir = RIGHT
-                    else:
-                        scr_dir = LEFT
-
-                    blocking_pos = set()
-                    block_pos_loaded = False
-                    for piece in orth_pieces[direction]:
-                        if piece.get_color() != self._color and piece.can_move(self.get_general_pos()):
-                            if piece.get_type() == CANNON:
-                                screen = piece.get_screen(scr_dir)
-                                if screen.get_color() != self._color and screen.get_type() == CANNON:
-                                    return True
-                                elif screen.get_color() == self._color and not screen.has_no_moves():
-                                    return False
-
-                            if not block_pos_loaded:
-                                blocking_pos = set(self.find_blocking_spots(piece.get_pos(), direction))
-                                block_pos_loaded = True
-                            else:
-                                blocking_pos.intersection(set(self.find_blocking_spots(piece.get_pos(), direction)))
-
-                    if len(blocking_pos) == 0:
-                        return True
-                    else:
-                        for spot in blocking_pos:
-                            for piece in self._pieces.values():
-                                if piece.can_move(spot):
-                                    return False
-
-                        return True
-
-    def find_blocking_spots(self, pos: tuple, direction: str):
-        if direction == UP:
-            search_dir = DOWN
-        elif direction == DOWN:
-            search_dir = UP
-        elif direction == LEFT:
-            search_dir = RIGHT
-        else:
-            search_dir = LEFT
-
-        r_shift, c_shift = DIR_DICT[search_dir]
-        row, col = pos
-
-        row += r_shift
-        col += c_shift
-
-
-        blocking_pos = []
-        while (row, col) != self.get_general_pos():
-            if self._board.get_pos((row, col)) is None:
-                blocking_pos.append((row, col))
-            row += r_shift
-            col += c_shift
-
-        return blocking_pos
+        return True

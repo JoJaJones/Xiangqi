@@ -67,7 +67,7 @@ class Piece:
         else:
             return False
 
-    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):  # TODO
+    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
         row, col = self._pos
         end_row, end_col = dest_pos
 
@@ -90,7 +90,7 @@ class Piece:
 
         piece = self._board.get_pos((end_row, end_col))
         if piece is not None:
-            return self.is_capture(dest_pos)
+            return self.is_capture(dest_pos) and num_between == num_allowed_between
 
         return num_between == num_allowed_between
 
@@ -136,43 +136,24 @@ class Piece:
 
         return True
 
-
-    # TODO refactor
     def ends_check(self, end_pos: tuple):
         if not self.causes_check(end_pos):
-            threats = self._general.get_threats()
-            blocking_pos = set()
-            for i in range(len(threats)):
-                if threats[i].get_type() == CANNON:
-                    scr_dir = self._board.get_direction_to_pos(threats[i].get_pos(), self._general.get_pos())
-                    screen = threats[i].get_screen(scr_dir)
-                    if screen == self:
-                        cannon_block = self.find_blocking_pos(threats[i].get_pos())
-                        return end_pos not in cannon_block
-                    screen_pos = screen.get_pos()
+            block_pos = self._general.get_blocking_pos()
 
-                if i == 0:
-                    if threats[i].get_type() != HORSE:
-                        blocking_pos = set(self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()])
-                    else:
-                        blocking_pos = {threats[i].get_blocking_pos(self._general.get_pos()), threats[i].get_pos()}
-                else:
-                    if threats[i].get_type() != HORSE:
-                        blocking_pos.intersection(set(self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()]))
-                    else:
-                        blocking_pos.intersection({threats[i].get_blocking_pos(self._general.get_pos()), threats[i].get_pos()})
+            if type(block_pos) == tuple:
+                block_pos, screen = block_pos
+                if screen == self:
+                    direction = self._board.get_direction_to_pos(self._general.get_pos(), self._pos)
+                    return not self.leaving_dir_causes_check(direction)
 
-                if threats[i].get_type() == CANNON and screen_pos in blocking_pos:
-                    blocking_pos.remove(screen.get_pos())
-
-            if end_pos in blocking_pos:
+            if end_pos in block_pos:
                 return True
             else:
                 return False
 
         return False
 
-    def find_blocking_pos(self, pos: tuple, direction: str = None):  # TODO
+    def find_blocking_pos(self, pos: tuple, direction: str = None):
         if direction is None:
             search_dir = self._board.get_direction_to_pos(pos, self._general.get_pos())
 
@@ -198,7 +179,6 @@ class Piece:
         g_row, g_col = self._general.get_pos()
         e_row, e_col = end_pos
 
-        # unblocks horse
         if abs(s_row - g_row) == 1 and abs(s_col - g_col) == 1:
             temp = self._general.get_rel_horses()
 
@@ -206,11 +186,10 @@ class Piece:
                       horse.get_type() == HORSE and horse.get_color() != self._color]
 
             for horse in horses:
-                if horse.get_blocking_pos() == self._pos:
+                if horse.find_blocking_pos() == self._pos:
                     return True
 
         if s_row == g_row or s_col == g_col:
-            # leaving row/col exposes gen
             dir_from_gen = self._board.get_direction_to_pos(self._general.get_pos(), self._pos)
             dir_to_gen = self._board.get_direction_to_pos(self._pos, self._general.get_pos())
             move_dir = self._board.get_direction_to_pos(self._pos, end_pos)
@@ -219,14 +198,13 @@ class Piece:
                 return True
 
         if e_row == g_row or e_col == g_col:
-            # entering row/col exposes gen
             dir_from_gen = self._board.get_direction_to_pos(self._general.get_pos(), end_pos)
             if self.entering_dir_causes_check(end_pos, dir_from_gen):
                 return True
 
         return False
 
-    def leaving_dir_causes_check(self, direction: str):  # TODO
+    def leaving_dir_causes_check(self, direction: str):
         orth_pieces = self._general.get_orth_pieces()[direction]
         idx = orth_pieces.index(self)
 
@@ -244,7 +222,7 @@ class Piece:
 
         return False
 
-    def capture_causes_check(self, end_pos: tuple, direction: str):  # TODO
+    def capture_causes_check(self, end_pos: tuple, direction: str):
         orth_pieces = self._general.get_orth_pieces()[direction]
         target_piece = self.get_piece_at_pos(end_pos)
 
@@ -273,7 +251,7 @@ class Piece:
 
         return False
 
-    def entering_dir_causes_check(self, end_pos: tuple, direction: str):  # TODO
+    def entering_dir_causes_check(self, end_pos: tuple, direction: str):
         g_row, g_col = self._general.get_pos()
         e_row, e_col = end_pos
 

@@ -1,6 +1,7 @@
 from Piece import Piece
 from constants import *
 
+
 class Horse(Piece):
     def __init__(self, board, color: str, pos: str, gen: Piece):
         super().__init__(board, HORSE, color, pos, gen)
@@ -34,7 +35,7 @@ class Horse(Piece):
 
         return False
 
-    def get_blocking_pos(self, pos: tuple = None, direction: str = None):
+    def find_blocking_pos(self, pos: tuple = None, direction: str = None):
         row, col = self.get_pos()
         if pos is None:
             block_pos = {}

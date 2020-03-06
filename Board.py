@@ -72,13 +72,10 @@ class Board:
     def convert_to_ltr_num(self, pos: tuple):
         row, col = pos
 
-        return self._positions[col] + str(row + 1)
+        return self._ltr_dict[col] + str(row + 1)
 
     def is_in_palace(self, pos: tuple, color: str = None):
-        if type(pos) == str:
-            row, col = self.convert_to_row_col(pos)
-        else:
-            row, col = pos
+        row, col = pos
 
         in_palace_col = 3 <= col <= 5
 
@@ -102,12 +99,6 @@ class Board:
             return False
 
     def crosses_river(self, start_pos: tuple, end_pos: tuple):
-        if type(start_pos) == str:
-            start_pos = self.convert_to_row_col(start_pos)
-
-        if type(end_pos) == str:
-            end_pos = self.convert_to_row_col(end_pos)
-
         start_row = start_pos[0]
         end_row = end_pos[0]
 
@@ -149,4 +140,3 @@ class Board:
                         print(f"[{color}{p_type}\033[00m]", end="")
 
             print("")
-        # input()
