@@ -36,29 +36,11 @@ class General(Piece):
         if piece.get_color() == self.get_color():
             return False
 
-        # if abs(horse[0]) > abs(horse[1]):
-        #     row_shift = 1
-        #     if horse[0] < 0:
-        #         row_shift *= -1
-        #
-        #     col_shift = horse[1]
-        # else:
-        #     row_shift = horse[0]
-        #
-        #     col_shift = 1
-        #     if horse[1] < 0:
-        #         col_shift *= -1
-
         blocking_pos = piece.get_blocking_pos(self._pos)
         blocking_piece = self.get_relative_piece(blocking_pos, pos)
 
         if blocking_piece is not None:
             return False
-
-        if pos is None:
-            pos = self._pos
-
-        threat_pos = ((pos[0] + horse[0]), (pos[1] + horse[1]))
 
         return True
 

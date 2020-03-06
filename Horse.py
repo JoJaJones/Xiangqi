@@ -34,7 +34,7 @@ class Horse(Piece):
 
         return False
 
-    def get_blocking_pos(self, pos: tuple = None):
+    def get_blocking_pos(self, pos: tuple = None, direction: str = None):
         row, col = self.get_pos()
         if pos is None:
             block_pos = {}

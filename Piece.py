@@ -150,6 +150,7 @@ class Piece:
                     if screen == self:
                         cannon_block = self.find_blocking_pos(threats[i].get_pos())
                         return end_pos not in cannon_block
+                    screen_pos = screen.get_pos()
 
                 if i == 0:
                     if threats[i].get_type() != HORSE:
@@ -162,10 +163,15 @@ class Piece:
                     else:
                         blocking_pos.intersection({threats[i].get_blocking_pos(self._general.get_pos()), threats[i].get_pos()})
 
+                if threats[i].get_type() == CANNON and screen_pos in blocking_pos:
+                    blocking_pos.remove(screen.get_pos())
+
             if end_pos in blocking_pos:
                 return True
             else:
                 return False
+
+        return False
 
     def find_blocking_pos(self, pos: tuple, direction: str = None):  # TODO
         if direction is None:
@@ -309,3 +315,5 @@ class Piece:
             return False
 
         return True
+
+
