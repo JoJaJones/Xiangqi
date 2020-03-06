@@ -36,7 +36,7 @@ class General(Piece):
         if piece.get_color() == self.get_color():
             return False
 
-        blocking_pos = piece.get_blocking_pos(self._pos)
+        blocking_pos = piece.find_blocking_pos(self._pos)
         blocking_piece = self.get_relative_piece(blocking_pos, pos)
 
         if blocking_piece is not None:
@@ -119,6 +119,50 @@ class General(Piece):
                             if threat.get_color() != self.get_color() and threat.can_move(self.get_pos(), False)]
 
         return threats
+
+    def get_blocking_pos(self):
+        threats = self._general.get_threats()
+        block_sets = []
+        s_screen = None
+
+        for i in range(len(threats)):
+            if threats[i].get_type() == CANNON:
+                scr_dir = self._board.get_direction_to_pos(threats[i].get_pos(), self._general.get_pos())
+                screen = threats[i].get_screen(scr_dir)
+                cannon_block = self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()]
+                if screen.get_pos in cannon_block:
+                    cannon_block.remove(screen.get_pos())
+
+                if screen.get_color() == self._color:
+                    s_screen = screen, cannon_block
+
+                if screen.get_type() == CANNON and s_screen is None:
+                    return set()
+                else:
+                    block_sets.append(set(cannon_block))
+
+            elif threats[i].get_type() != HORSE:
+                block_sets.append(set(self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()]))
+            else:
+                block_sets.append({threats[i].find_blocking_pos(self._general.get_pos()), threats[i].get_pos()})
+
+        blocking_pos = block_sets[0]
+        for i in range(1, len(block_sets)):
+            blocking_pos.intersection(block_sets[i])
+
+        if len(blocking_pos) == 0 and s_screen is not None:
+            if block_sets[0] == s_screen[1]:
+                blocking_pos = set()
+            for i in range(1, len(block_sets)):
+                if i == 1 and len(blocking_pos) == 0:
+                    blocking_pos.union(block_sets[i])
+                else:
+                    blocking_pos.intersection(block_sets[i])
+
+        if s_screen is None:
+            return blocking_pos
+        else:
+            return blocking_pos, s_screen[0]
 
     def update_dir_pieces(self, direction: str = None, pos: tuple = None):
         if direction is None:
