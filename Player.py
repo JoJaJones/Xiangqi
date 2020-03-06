@@ -109,6 +109,7 @@ class Player:
 
         return False
 
+    # TODO refactor
     def is_mate(self):
         if not self.is_in_check():
             return False

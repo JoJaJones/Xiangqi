@@ -30,3 +30,4 @@ PIECE_DICT = {GENERAL: (["e"], 0),
               CHARIOT: (["a", "i"], 0),
               CANNON: (["b", "h"], 2),
               SOLDIER: (["a", "c", "e", "g", "i"], 3)}
+
