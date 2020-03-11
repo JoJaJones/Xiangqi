@@ -37,7 +37,7 @@ class General(Piece):
             return False
 
         blocking_pos = piece.find_blocking_pos(self._pos)
-        blocking_piece = self.get_relative_piece(blocking_pos, pos)
+        blocking_piece = self.get_piece_at_pos(blocking_pos)
 
         if blocking_piece is not None:
             return False
@@ -45,34 +45,25 @@ class General(Piece):
         return True
 
     def find_threats_in_dir(self, direction: str, pos: tuple = None):
-        blocking_pieces = 0
         self.update_dir_pieces(direction, pos)
+        pieces_in_dir = self._pieces_in_dir[direction]
 
         if pos is None:
             cur_row, cur_col = self._pos
         else:
             cur_row, cur_col = pos
 
-        for piece in self._pieces_in_dir[direction]:
-
+        for piece in pieces_in_dir:
             piece_type = piece.get_type()
             piece_color = piece.get_color()
-            p_row, p_col = piece.get_pos()
 
-            if self.get_color() == BLACK:
-                soldier_dir_adjust = 1
-            else:
-                soldier_dir_adjust = -1
-
-            if piece_color != self.get_color() and blocking_pieces < 2:
-                if piece_type == SOLDIER and (abs(cur_col - p_col) == 1 ^ cur_row - p_row == soldier_dir_adjust):
-                    return True
-                elif piece_type == CANNON and blocking_pieces == 1:
-                    return True
-                elif (piece_type == CHARIOT or piece_type == GENERAL) and blocking_pieces == 0:
+            if piece_color != self.get_color():
+                if piece.can_move((cur_row, cur_col)):
                     return True
 
-            blocking_pieces += 1
+                piece_idx = pieces_in_dir.index(piece)
+                if (piece_type == GENERAL and piece_idx == 0) or (piece_type == CANNON and piece_idx == 1):
+                    return True
 
         return False
 
@@ -120,7 +111,7 @@ class General(Piece):
 
         return threats
 
-    def get_blocking_pos(self):
+    def get_blocking_pos(self):  # TODO refactor
         threats = self._general.get_threats()
         block_sets = []
         s_screen = None
@@ -137,7 +128,7 @@ class General(Piece):
                     s_screen = screen, cannon_block
 
                 if screen.get_type() == CANNON and s_screen is None:
-                    return set()
+                    return set(), None
                 else:
                     block_sets.append(set(cannon_block))
 
@@ -150,19 +141,19 @@ class General(Piece):
         for i in range(1, len(block_sets)):
             blocking_pos.intersection(block_sets[i])
 
-        if len(blocking_pos) == 0 and s_screen is not None:
-            if block_sets[0] == s_screen[1]:
-                blocking_pos = set()
-            for i in range(1, len(block_sets)):
-                if i == 1 and len(blocking_pos) == 0:
-                    blocking_pos.union(block_sets[i])
-                else:
-                    blocking_pos.intersection(block_sets[i])
+        if s_screen is not None:
+            if len(blocking_pos) == 0:
+                if block_sets[0] == s_screen[1]:
+                    blocking_pos = set()
+                for i in range(1, len(block_sets)):
+                    if i == 1 and len(blocking_pos) == 0:
+                        blocking_pos.union(block_sets[i])
+                    else:
+                        blocking_pos.intersection(block_sets[i])
 
-        if s_screen is None:
-            return blocking_pos
-        else:
-            return blocking_pos, s_screen[0]
+            s_screen = s_screen[0]
+
+        return blocking_pos, s_screen
 
     def update_dir_pieces(self, direction: str = None, pos: tuple = None):
         if direction is None:

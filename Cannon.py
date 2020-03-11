@@ -5,7 +5,7 @@ class Cannon(Chariot):
     def __init__(self, board, color: str, pos: str, gen):
         super().__init__(board, color, pos, gen, CANNON)
 
-    def is_unobstructed(self, dest_pos: tuple, **kwargs):
+    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
         if self.is_capture(dest_pos):
             if super().is_unobstructed(dest_pos, 1):
                 return True

@@ -17,10 +17,7 @@ class Soldier(Piece):
 
         if super().is_valid_pos(dest_pos):
             if not self._crossed_river:
-                if start_row == end_row:
-                    return False
-
-                if start_col != end_col:
+                if start_row == end_row or start_col != end_col:
                     return False
 
                 if start_row + self._row_shift != end_row:

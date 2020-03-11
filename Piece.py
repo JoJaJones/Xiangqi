@@ -51,10 +51,6 @@ class Piece:
         if start_col == end_col and abs(end_row - start_row) > self._move_distance:
             return False
 
-        dest_piece = self._board.get_pos(dest_pos)
-        if dest_piece is not None and dest_piece.get_color() == self._color:
-            return False
-
         return True
 
     def is_on_board(self, row: int, col: int):
@@ -68,6 +64,10 @@ class Piece:
             return False
 
     def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
+        dest_piece = self._board.get_pos(dest_pos)
+        if dest_piece is not None and dest_piece.get_color() == self._color:
+            return False
+
         row, col = self._pos
         end_row, end_col = dest_pos
 
@@ -138,26 +138,37 @@ class Piece:
 
     def ends_check(self, end_pos: tuple):
         if not self.causes_check(end_pos):
-            block_pos = self._general.get_blocking_pos()
+            block_pos, screen = self._general.get_blocking_pos()
 
-            if type(block_pos) == tuple:
-                block_pos, screen = block_pos
-                if screen == self:
-                    direction = self._board.get_direction_to_pos(self._general.get_pos(), self._pos)
+            if screen is not None and screen == self:
+                direction = self._board.get_direction_to_pos(self._general.get_pos(), self._pos)
+                if self._pos[0] == self._general.get_pos()[0]:
+                    idx = 0
+                else:
+                    idx = 1
+
+                cannon = self._general.get_orth_pieces()[direction][1]
+                general_pos = self._general.get_pos()[idx^1]
+
+                is_still_screen = end_pos[idx] != self._general.get_pos()[idx]
+                is_still_screen |= self._board.get_direction_to_pos(self._general.get_pos(), end_pos) != direction
+                is_still_screen |= abs(end_pos[idx^1] - general_pos) > abs(cannon.get_pos()[idx^1] - general_pos)
+                is_still_screen = not is_still_screen
+
+                if not is_still_screen:
                     return not self.leaving_dir_causes_check(direction)
+                else:
+                    return False
 
-            if end_pos in block_pos:
-                return True
-            else:
-                return False
+            return end_pos in block_pos
 
         return False
 
     def find_blocking_pos(self, pos: tuple, direction: str = None):
         if direction is None:
-            search_dir = self._board.get_direction_to_pos(pos, self._general.get_pos())
+            direction = self._board.get_direction_to_pos(pos, self._general.get_pos())
 
-        r_shift, c_shift = DIR_DICT[search_dir]
+        r_shift, c_shift = DIR_DICT[direction]
         row, col = pos
 
         row += r_shift
@@ -185,9 +196,16 @@ class Piece:
             horses = [horse for horse in temp if horse is not None and
                       horse.get_type() == HORSE and horse.get_color() != self._color]
 
+            blocked_list = []
             for horse in horses:
-                if horse.find_blocking_pos() == self._pos:
-                    return True
+                if horse.find_blocking_pos(self._general.get_pos()) == self._pos:
+                    blocked_list.append(horse)
+
+            if len(blocked_list) == 0:
+                return False
+
+            if len(blocked_list) > 1 or end_pos != blocked_list[0].get_pos():
+                return True
 
         if s_row == g_row or s_col == g_col:
             dir_from_gen = self._board.get_direction_to_pos(self._general.get_pos(), self._pos)

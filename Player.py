@@ -74,7 +74,7 @@ class Player:
                 r_shift, c_shift = DIR_DICT[direction]
                 pos = (g_row + r_shift, g_col + c_shift)
 
-                if not self.is_in_check(pos):
+                if self._general.can_move(pos) and not self.is_in_check(pos):
                     return True
 
         return False
@@ -123,10 +123,7 @@ class Player:
         if len(threats) >= 3:
             return True
 
-        blocking_pos = self._general.get_blocking_pos()
-        screen = None
-        if type(blocking_pos) == tuple:
-            blocking_pos, screen = blocking_pos
+        blocking_pos, screen = self._general.get_blocking_pos()
 
         if len(blocking_pos) == 0:
             return True
