@@ -8,20 +8,16 @@ class Elephant(Piece):
     def is_valid_pos(self, dest_pos: tuple):
         if super().is_valid_pos(dest_pos):
             cur_row, cur_col = self._pos
-            if abs(cur_col - dest_pos[1]) != 2:
-                return False
 
-            if abs(cur_row - dest_pos[0]) != 2:
-                return False
+            is_valid = abs(cur_row - dest_pos[0]) == 2
+            is_valid &= abs(cur_col - dest_pos[1]) == 2
+            is_valid &= not self._board.crosses_river(self._pos, dest_pos)
 
-            if self._board.crosses_river(self._pos, dest_pos):
-                return False
-
-            return True
+            return is_valid
 
         return False
 
-    def is_unobstructed(self, dest_pos: tuple, **kwargs):
+    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
         if super().is_unobstructed(dest_pos):
             cur_row, cur_col = self._pos
 

@@ -18,7 +18,7 @@ class Horse(Piece):
 
         return False
 
-    def is_unobstructed(self, dest_pos: tuple, **kwargs):
+    def is_unobstructed(self, dest_pos: tuple, num_allowed_between: int = 0):
         if super().is_unobstructed(dest_pos):
             blocking_pos = self.find_blocking_pos(dest_pos)
 
@@ -29,7 +29,7 @@ class Horse(Piece):
 
         return False
 
-    def find_blocking_pos(self, pos: tuple = None, direction: str = None):
+    def find_blocking_pos(self, pos: tuple):
         row, col = self.get_pos()
 
         if abs(row - pos[0]) == 2:

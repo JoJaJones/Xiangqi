@@ -136,7 +136,7 @@ class Piece:
 
         return True
 
-    def ends_check(self, end_pos: tuple):
+    def ends_check(self, end_pos: tuple):  # todo refactor?
         if not self.causes_check(end_pos):
             block_pos, screen = self._general.get_blocking_pos()
 
@@ -147,15 +147,13 @@ class Piece:
                 else:
                     idx = 1
 
-                cannon = self._general.get_orth_pieces()[direction][1]
-                general_pos = self._general.get_pos()[idx^1]
+                cannon_pos = self._general.get_orth_pieces()[direction][1].get_pos()[idx ^ 1]
+                general_pos = self._general.get_pos()[idx ^ 1]
 
-                is_still_screen = end_pos[idx] != self._general.get_pos()[idx]
-                is_still_screen |= self._board.get_direction_to_pos(self._general.get_pos(), end_pos) != direction
-                is_still_screen |= abs(end_pos[idx^1] - general_pos) > abs(cannon.get_pos()[idx^1] - general_pos)
-                is_still_screen = not is_still_screen
+                is_not_still_screen = self._board.get_direction_to_pos(self._general.get_pos(), end_pos) != direction
+                is_not_still_screen |= abs(end_pos[idx ^ 1] - general_pos) > abs(cannon_pos - general_pos)
 
-                if not is_still_screen:
+                if is_not_still_screen:
                     return not self.leaving_dir_causes_check(direction)
                 else:
                     return False
@@ -164,9 +162,8 @@ class Piece:
 
         return False
 
-    def find_blocking_pos(self, pos: tuple, direction: str = None):
-        if direction is None:
-            direction = self._board.get_direction_to_pos(pos, self._general.get_pos())
+    def find_blocking_pos(self, pos: tuple):
+        direction = self._board.get_direction_to_pos(pos, self._general.get_pos())
 
         r_shift, c_shift = DIR_DICT[direction]
         row, col = pos
@@ -176,8 +173,8 @@ class Piece:
 
         blocking_pos = []
         while (row, col) != self._general.get_pos():
-            piece = self._general.get_piece_at_pos((row, col))
-            if piece is None:
+            piece = self.get_piece_at_pos((row, col))
+            if piece is None or piece.get_color() != self._color:
                 blocking_pos.append((row, col))
 
             row += r_shift

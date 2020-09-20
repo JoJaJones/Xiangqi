@@ -20,9 +20,6 @@ class Board:
         row, col = pos
         return self._positions[row][col]
 
-    def get_positions(self):
-        return self._positions
-
     def get_direction_to_pos(self, source_pos: tuple, dest_pos: tuple):
         s_row, s_col = source_pos
 
@@ -69,12 +66,7 @@ class Board:
 
         return row, col
 
-    def convert_to_ltr_num(self, pos: tuple):
-        row, col = pos
-
-        return self._ltr_dict[col] + str(row + 1)
-
-    def is_in_palace(self, pos: tuple, color: str = None):
+    def is_in_palace(self, pos: tuple):
         row, col = pos
 
         in_palace_col = 3 <= col <= 5
@@ -85,12 +77,7 @@ class Board:
         in_black = 9 >= row >= 7
         in_black = in_black and in_palace_col
 
-        if color is None:
-            return in_black or in_red
-        elif color == RED:
-            return in_red
-        else:
-            return in_black
+        return in_black or in_red
 
     def leaves_palace(self, start_pos: tuple, end_pos: tuple):
         if self.is_in_palace(start_pos) and not self.is_in_palace(end_pos):
@@ -105,10 +92,7 @@ class Board:
         min_row = min(start_row, end_row)
         max_row = max(start_row, end_row)
 
-        if min_row <= 4 and max_row >= 5:
-            return True
-        else:
-            return False
+        return min_row <= 4 and max_row >= 5
 
     def print_board(self):
         print_dict = {SOLDIER: "S", CHARIOT: "T", ADVISOR: "A", CANNON: "C", ELEPHANT: "E", GENERAL: "G", HORSE: "H",

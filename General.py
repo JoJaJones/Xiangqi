@@ -121,7 +121,7 @@ class General(Piece):
                 scr_dir = self._board.get_direction_to_pos(threats[i].get_pos(), self._general.get_pos())
                 screen = threats[i].get_screen(scr_dir)
                 cannon_block = self.find_blocking_pos(threats[i].get_pos()) + [threats[i].get_pos()]
-                if screen.get_pos in cannon_block:
+                if screen.get_pos() in cannon_block:
                     cannon_block.remove(screen.get_pos())
 
                 if screen.get_color() == self._color:
